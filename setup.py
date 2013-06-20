@@ -24,7 +24,4 @@ setup(
     zip_safe=False,
     test_suite='batteries',
     install_requires = requires,
-    entry_points = {
-        'pyramid.scaffold': 'dhillon=dhillon_site.scaffolds:DhillonTemplate',
-    }
 )
