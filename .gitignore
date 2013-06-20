@@ -1,0 +1,7 @@
+*.pyc
+*.swp
+*.swo
+*.sqlite
+*.egg-info
+*.log
+*.pid
