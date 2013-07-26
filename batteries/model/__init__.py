@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.orm.interfaces import EXT_CONTINUE, EXT_STOP
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta, declared_attr
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
@@ -6,6 +8,7 @@ from sqlalchemy import event
 from batteries.util import metaproperty
 
 Session = None
+logger = logging.getLogger('batteries.model')
 
 def initialize_model(session, engine, debug=False):
     global Session
@@ -13,24 +16,9 @@ def initialize_model(session, engine, debug=False):
     Session.configure(bind=engine)
     Model.metadata.bind = engine
 
+    logger.info('model configured')
+
 class MetaModel(DeclarativeMeta):
-    def __new__(metacls, name, bases, d):
-        events = ('after_configured', 'after_delete', 'after_insert', 'after_update',\
-                  'append_result', 'before_delete', 'before_insert', 'before_update',\
-                  'create_instance', 'instrument_class', 'mapper_configured',\
-                  'populate_instance', 'translate_row', 'expire', 'first_init',\
-                  'init', 'init_failure', 'load', 'pickle', 'refresh', 'resurrect',\
-                  'unpickle')
-
-        cls = type.__new__(metacls, name, bases, d)
-        for ev in events:
-            for c in bases:
-                mname = 'on_{0}'.format(ev)
-                if mname in c.__dict__:
-                    event.listen(cls, ev, getattr(c, mname))
-
-        return cls
-
     @metaproperty
     def query(cls):
         return Session.query(cls)
@@ -66,5 +54,19 @@ class Model(object):
             s.append("{0}={1!r}".format(col.key, getattr(self, col.key)))
 
         return "<{cls}({pk})>".format(cls=self.__class__.__name__, pk=', '.join(s))
+
+@event.listens_for(Model, 'mapper_configured', propagate=True)
+def on_after_configured(mapper, cls):
+    events = ('after_configured', 'after_delete', 'after_insert', 'after_update',\
+              'append_result', 'before_delete', 'before_insert', 'before_update',\
+              'create_instance', 'instrument_class', 'mapper_configured',\
+              'populate_instance', 'translate_row', 'expire', 'first_init',\
+              'init', 'init_failure', 'load', 'pickle', 'refresh', 'resurrect',\
+              'unpickle')
+
+    for ev in events:
+        mname = 'on_{0}'.format(ev)
+        if mname in cls.__dict__:
+            event.listen(cls, ev, getattr(cls, mname))
 
 Model = declarative_base(cls=Model, metaclass=MetaModel)

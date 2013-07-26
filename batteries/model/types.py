@@ -53,10 +53,12 @@ class UUID(TypeDecorator):
         return False
 
 class Ascii(TypeDecorator):
-    impl = mysql.VARCHAR
+    impl = String
 
     def __init__(self, *args, **kwargs):
-        kwargs['charset'] = 'latin1'
+        if 'charset' in kwargs:
+            del kwargs['charset']
+
         TypeDecorator.__init__(self, *args, **kwargs)
 
     def load_dialect_impl(self, dialect):
@@ -64,4 +66,4 @@ class Ascii(TypeDecorator):
             return dialect.type_descriptor(mysql.VARCHAR(length=self.length, charset='latin1'))
 
         else:
-            return dialect.type_descriptor(String)
+            return dialect.type_descriptor(String(self.length))

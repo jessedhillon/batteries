@@ -1,9 +1,11 @@
 from hashlib import sha1
 from uuid import uuid4 as uuid
 
-from batteries.model.types import Ascii
-
+from sqlalchemy.schema import ForeignKey, Table, Column, Index, UniqueConstraint, ForeignKeyConstraint
 from sqlalchemy import event
+
+from batteries.model import Model
+from batteries.model.types import Ascii
 
 class Hashable(object):
     key_name = 'key'
@@ -23,7 +25,7 @@ class Hashable(object):
 
             if isinstance(instance.keyed_on, tuple):
                 for p in instance.keyed_on:
-                    h.update(getattr(instance, p))
+                    h.update(str(getattr(instance, p)))
 
             elif instance.keyed_on == 'uuid':
                 h.update(uuid().hex)
@@ -47,10 +49,33 @@ class Hashable(object):
         if getattr(self, colname) is None:
             setattr(self, colname, Hashable.make_key(instance=self))
 
-    @staticmethod
-    def on_before_insert(mapper, connection, target):
-        target.update_key()
+@event.listens_for(Hashable, 'before_insert', propagate=True)
+def on_before_insert(mapper, connection, target):
+    target.update_key()
 
-    @staticmethod
-    def on_before_update(mapper, connection, target):
-        target.update_key()
+@event.listens_for(Hashable, 'before_update', propagate=True)
+def on_before_update(mapper, connection, target):
+    target.update_key()
+
+def HashableAssociation(left_table, right_table, name=None, left_key_name=None, right_key_name=None, left_foreign_key_name='key', right_foreign_key_name='key'):
+    if name is None:
+        name = "{0}_{1}".format(left_table, right_table)
+
+    if left_key_name is None:
+        left_key_name = "{0}_key".format(left_table)
+
+    if right_key_name is None:
+        right_key_name = "{0}_key".format(right_table)
+
+    return Table(name, Model.metadata,
+            Column(left_key_name, Ascii(40), ForeignKey("{0}.{1}".format(left_table, left_foreign_key_name)), primary_key=True),
+            Column(right_key_name, Ascii(40), ForeignKey("{0}.{1}".format(right_table, right_foreign_key_name)), primary_key=True))
+
+def HashableReference(foreign_table, foreign_key_name='key', primary_key=False):
+    return Column(Ascii(40), ForeignKey("{0}.{1}".format(foreign_table, foreign_key_name)), primary_key=primary_key)
+
+def HashableKey(name=None):
+    if name is None:
+        name = 'key'
+
+    return Column(name, Ascii(40), primary_key=True)
