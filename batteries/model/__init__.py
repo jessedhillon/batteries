@@ -36,24 +36,52 @@ class MetaModel(DeclarativeMeta):
 class Model(object):
     __table_args__ =    {'mysql_engine': 'InnoDB',
                          'mysql_charset': 'utf8'}
+    __identifiers__ = None
 
-    def __str__(self):
-        pk = self.__mapper__.primary_key
+    def __unicode__(self):
+        ids = []
+        if not self.__identifiers__:
+            ids = self.__mapper__.primary_key
+        else:
+            ids = self.__identifiers__
 
         s = []
-        for col in pk:
-            s.append("{0}={1!r}".format(col.key, getattr(self, col.key)))
+        for col in ids:
+            if hasattr(col, 'key'):
+                col = col.key
 
-        return "{cls}({pk})".format(cls=self.__class__.__name__, pk=', '.join(s))
+            if isinstance(col, tuple):
+                col, fmt = col
+            else:
+                fmt = u"{v!r}"
+
+            fmt = u"{col}=" + unicode(fmt)
+            s.append(fmt.format(col=col, v=getattr(self, col)))
+
+        return u"{cls}({keys})".format(cls=self.__class__.__name__, keys=', '.join(s))
+    __str__ = __unicode__
 
     def __repr__(self):
-        pk = self.__mapper__.primary_key
+        ids = []
+        if not self.__identifiers__:
+            ids = self.__mapper__.primary_key
+        else:
+            ids = self.__identifiers__
 
         s = []
-        for col in pk:
-            s.append("{0}={1!r}".format(col.key, getattr(self, col.key)))
+        for col in ids:
+            if hasattr(col, 'key'):
+                col = col.key
 
-        return "<{cls}({pk})>".format(cls=self.__class__.__name__, pk=', '.join(s))
+            if isinstance(col, tuple):
+                col, fmt = col
+            else:
+                fmt = "{v!r}"
+
+            fmt = "{col}=" + fmt
+            s.append(fmt.format(col=col, v=getattr(self, col)))
+
+        return "<{cls}({keys})>".format(cls=self.__class__.__name__, keys=', '.join(s))
 
 @event.listens_for(Model, 'mapper_configured', propagate=True)
 def on_after_configured(mapper, cls):
