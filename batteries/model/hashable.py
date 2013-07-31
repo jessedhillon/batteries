@@ -57,7 +57,7 @@ def on_before_insert(mapper, connection, target):
 def on_before_update(mapper, connection, target):
     target.update_key()
 
-def HashableAssociation(left_table, right_table, name=None, left_key_name=None, right_key_name=None, left_foreign_key_name='key', right_foreign_key_name='key'):
+def HashableAssociation(left_table, right_table, left_key_name=None, right_key_name=None, left_foreign_key_name='key', right_foreign_key_name='key', name=None, ):
     if name is None:
         name = "{0}_{1}".format(left_table, right_table)
 
@@ -71,8 +71,8 @@ def HashableAssociation(left_table, right_table, name=None, left_key_name=None, 
             Column(left_key_name, Ascii(40), ForeignKey("{0}.{1}".format(left_table, left_foreign_key_name)), primary_key=True),
             Column(right_key_name, Ascii(40), ForeignKey("{0}.{1}".format(right_table, right_foreign_key_name)), primary_key=True))
 
-def HashableReference(foreign_table, foreign_key_name='key', primary_key=False):
-    return Column(Ascii(40), ForeignKey("{0}.{1}".format(foreign_table, foreign_key_name)), primary_key=primary_key)
+def HashableReference(foreign_table, foreign_key_name='key',  **kwargs):
+    return Column(Ascii(40), ForeignKey("{0}.{1}".format(foreign_table, foreign_key_name)), **kwargs)
 
 def HashableKey(name=None):
     if name is None:
