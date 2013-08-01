@@ -3,8 +3,9 @@ import os
 from sqlalchemy.ext.mutable import Mutable
 from sqlalchemy.orm.interfaces import MapperExtension, EXT_CONTINUE, EXT_STOP
 from sqlalchemy.types import TypeDecorator, String
+from sqlalchemy import event
 
-from pyramid.path import AssetResolver
+from batteries.path import AssetResolver
 
 class FileProxy(object):
     def __init__(self, path, filename='', file=None):
@@ -121,24 +122,25 @@ class Storable(object):
 
         return storage_fields
 
-    def on_init(self, target, context):
-        cls = self.__class__
+@event.listens_for(Storable, 'init', propagate=True)
+def on_init(self, target, context):
+    cls = self.__class__
 
-        for f in self.storage_fields:
-            column = self.__mapper__.columns[f].type
-            path = column.pathspec
-            filename = getattr(self, f)
-            setattr(self, f, MutableLocalFileProxy(path, filename))
+    for f in self.storage_fields:
+        column = self.__mapper__.columns[f].type
+        path = column.pathspec
+        filename = getattr(self, f)
+        setattr(self, f, MutableLocalFileProxy(path, filename))
 
-    @staticmethod
-    def on_before_insert(mapper, connection, target):
-        for f in target.storage_fields:
-            proxy = getattr(target, f)
-            if proxy.dirty:
-                proxy.flush()
+@event.listens_for(Storable, 'before_insert', propagate=True)
+def on_before_insert(mapper, connection, target):
+    for f in target.storage_fields:
+        proxy = getattr(target, f)
+        if proxy.dirty:
+            proxy.flush()
 
-    @staticmethod
-    def on_before_delete(mapper, connection, target):
-        for f in target.storage_fields:
-            proxy = getattr(target, f)
-            proxy.remove()
+@event.listens_for(Storable, 'before_delete', propagate=True)
+def on_before_delete(mapper, connection, target):
+    for f in target.storage_fields:
+        proxy = getattr(target, f)
+        proxy.remove()

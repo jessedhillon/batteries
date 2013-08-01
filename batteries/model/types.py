@@ -6,7 +6,7 @@ from sqlalchemy.types import TypeDecorator, DateTime, String
 import sqlalchemy.dialects.mysql as mysql
 import sqlalchemy.dialects.sqlite as sqlite
 
-from pyramid.path import AssetResolver
+from batteries.path import AssetResolver
 
 class UTCDateTime(TypeDecorator):
     impl = DateTime
