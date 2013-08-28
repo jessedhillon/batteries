@@ -6,23 +6,38 @@ from batteries.model import Model
 from batteries.model.types import Ascii, UTCDateTime
 import batteries.util as util
 
+from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import deferred
 from sqlalchemy.schema import Column
-from sqlalchemy.types import Unicode, Integer, LargeBinary
+from sqlalchemy.types import Unicode, BigInteger, Integer, LargeBinary, Enum
 from sqlalchemy import event
 
 class Loggable(object):
-    logging_required = False
+    logging_required = True
 
-    def log(self, qualifier, message, data=None):
+    def log(self, level, qualifier, message, data=None):
         self._logged = True
-        self.log_messages.append(
-            self.logging_class(
-                timestamp=datetime.utcnow().replace(tzinfo=tzutc()),
-                qualifier=qualifier,
-                message=message,
-                data=data
-            )
+        m = self.logging_class(
+            level=level,
+            timestamp=datetime.utcnow().replace(tzinfo=tzutc()),
+            qualifier=qualifier,
+            message=message,
+            data=data
         )
+        self.log_messages.append(m)
+        return m
+
+    def debug(self, qualifier, message, data=None):
+        return self.log('debug', qualifier, message, data)
+
+    def info(self, qualifier, message, data=None):
+        return self.log('info', qualifier, message, data)
+
+    def warn(self, qualifier, message, data=None):
+        return self.log('warn', qualifier, message, data)
+
+    def error(self, qualifier, message, data=None):
+        return self.log('error', qualifier, message, data)
 
 @event.listens_for(Loggable, 'init', propagate=True)
 def on_loggable_init(target, args, kwargs):
@@ -54,14 +69,18 @@ def on_loggable_after_update(mapper, connection, target):
 
 class LogMessage(Model):
     __abstract__ = True
-    __identifiers__ = ('qualifier', ('timestamp', "[{v!s}]"), 'message')
+    __identifiers__ = ('level', 'qualifier', ('timestamp', "[{v!s}]"), 'message')
     timestamp_fmt = None
 
-    id =                Column(Integer, primary_key=True)
+    id =                Column(Integer, primary_key=True, autoincrement=True)
+    level =             Column(Enum('debug', 'info', 'warn', 'error'), nullable=False, index=True)
     timestamp =         Column(UTCDateTime, nullable=False)
     qualifier =         Column(Ascii(100), nullable=False)
     message =           Column(Unicode(500), nullable=False)
-    data =              Column(LargeBinary)
+
+    @declared_attr
+    def data(cls):
+        return deferred(Column(LargeBinary))
 
     @property
     def formatted_timestamp(self):
@@ -70,8 +89,8 @@ class LogMessage(Model):
         return unicode(self.timestamp)
 
     def __unicode__(self):
-        s = u"[{l.formatted_timestamp}] <{l.qualifier}> {l.message}".\
-                format(l=self)
+        s = u"{level!s:>7} [{l.formatted_timestamp}] <{l.qualifier}> {l.message}".\
+                format(level=self.level.upper(), l=self)
         if self.data:
             size = util.format_bytes(len(self.data))
             s += u" @{{{0}}}".format(size)

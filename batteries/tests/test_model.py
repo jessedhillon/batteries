@@ -51,6 +51,8 @@ class TestCase(TestCase):
         from batteries.model import Session
         assert Session == self.session
 
+        MyModel.logging_required = False
+
     def tearDown(self):
         MyModel.logging_required = False
         Model.metadata.drop_all(self.engine)
