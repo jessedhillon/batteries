@@ -80,7 +80,7 @@ class LogMessage(Model):
 
     @declared_attr
     def data(cls):
-        return deferred(Column(LargeBinary))
+        return deferred(Column(LargeBinary(length=2**20)))
 
     @property
     def formatted_timestamp(self):

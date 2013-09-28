@@ -72,8 +72,8 @@ def HashableAssociation(left_table, right_table, left_key_name=None, right_key_n
             Column(right_key_name, Ascii(40), ForeignKey("{0}.{1}".format(right_table, right_foreign_key_name)), primary_key=True),
             **kwargs)
 
-def HashableReference(foreign_table, foreign_key_name='key', **kwargs):
-    return Column(Ascii(40), ForeignKey("{0}.{1}".format(foreign_table, foreign_key_name)), **kwargs)
+def HashableReference(foreign_table, key_name='key', **kwargs):
+    return Column(Ascii(40), ForeignKey("{0}.{1}".format(foreign_table, key_name)), **kwargs)
 
 def HashableKey(name=None):
     if name is None:
