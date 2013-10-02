@@ -74,14 +74,12 @@ class Serializable(object):
                 fields -= set(exclude)
 
         for prop in fields:
-            v = getattr(self, prop)
             serializer_name = 'serialize_' + prop
-            clsname = type(v).__name__
-
             if hasattr(self, serializer_name):
-                obj[prop] = getattr(self, serializer_name)(v)
+                obj[prop] = getattr(self, serializer_name)()
 
             else:
+                v = getattr(self, prop)
                 serializers = self.__serializable_args__['serializers']
                 opts = self.__serializable_args__['opts']
                 obj[prop] = serialize(v, serializers, opts)
