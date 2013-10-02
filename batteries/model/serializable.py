@@ -68,10 +68,10 @@ class Serializable(object):
             fields = set(self.__class__.serializable)
 
             if include is not None:
-                fields += set(include)
+                fields |= set(include)
 
             if exclude is not None:
-                fields -= set(exclude)
+                fields ^= set(exclude)
 
         for prop in fields:
             serializer_name = 'serialize_' + prop
