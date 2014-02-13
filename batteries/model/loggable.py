@@ -73,7 +73,7 @@ class LogMessage(Model):
     timestamp_fmt = None
 
     id =                Column(Integer, primary_key=True, autoincrement=True)
-    level =             Column(Enum('debug', 'info', 'warn', 'error'), nullable=False, index=True)
+    level =             Column(Enum('debug', 'info', 'warn', 'error', name='log_level'), nullable=False, index=True)
     timestamp =         Column(UTCDateTime, nullable=False)
     qualifier =         Column(Ascii(100), nullable=False)
     message =           Column(Unicode(500), nullable=False)
