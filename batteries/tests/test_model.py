@@ -19,6 +19,7 @@ from batteries.model.recordable import Recordable
 from batteries.model.serializable import Serializable
 from batteries.model.storable import Storable, LocalStorage
 from batteries.model.loggable import Loggable, LogMessage
+from batteries.model.deletable import Deletable
 
 class MyLogMessage(LogMessage):
     __tablename__ = 'my_log_message'
@@ -37,6 +38,15 @@ class MyModel(Hashable, Serializable, Storable, Model, Recordable, Loggable):
 
     log_messages = relationship('MyLogMessage',
                                 order_by='MyLogMessage.timestamp.asc()')
+
+
+class MyDeletableModel(Hashable, Deletable, Model):
+    __tablename__ = 'my_deletable_model'
+    serializable = ('key', 'name')
+
+    _key = Column('key', Ascii(40), primary_key=True)
+    name = Column(Unicode(100))
+
 
 class TestCase(TestCase):
     def setUp(self):
@@ -158,7 +168,7 @@ class TestCase(TestCase):
 
         start = datetime.utcnow().replace(tzinfo=tzutc())
         m = MyModel(name=u"Foo Bar")
-        m.log(__name__, u"test_loggable", u"{0!r}".format({'name': u"Foo Bar"}))
+        m.log('info', __name__, u"test_loggable", u"{0!r}".format({'name': u"Foo Bar"}))
         self.session.add(m)
         self.session.flush()
         end = datetime.utcnow().replace(tzinfo=tzutc())
@@ -171,12 +181,13 @@ class TestCase(TestCase):
 
         start = datetime.utcnow().replace(tzinfo=tzutc())
         m.name = u"Foo Bar Baz"
-        m.log(__name__, u"name change", u"Foo Bar Baz")
+        m.log('info', __name__, u"name change", u"Foo Bar Baz")
         self.session.add(m)
         self.session.flush()
         end = datetime.utcnow().replace(tzinfo=tzutc())
 
         assert len(m.log_messages) == 2
+        assert m.log_messages[1].level == 'info'
         assert m.log_messages[1].qualifier == __name__
         assert m.log_messages[1].message == u"name change"
         assert m.log_messages[1].data == u"Foo Bar Baz"
@@ -186,3 +197,13 @@ class TestCase(TestCase):
             self.logger.info(unicode(message))
             if message.data:
                 self.logger.info("  --@ {0}".format(message.data))
+
+    def test_deletable(self):
+        m = MyDeletableModel(name=u"Foo Bar")
+        assert m.is_deleted is False
+
+        m.delete()
+        assert m.is_deleted is not False
+
+        self.session.add(m)
+        self.session.flush()
