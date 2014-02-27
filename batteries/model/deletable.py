@@ -4,21 +4,26 @@ from dateutil.tz import tzutc
 
 from sqlalchemy.schema import Column
 from sqlalchemy import event
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from batteries.model.types import UTCDateTime
 
 
 class Deletable(object):
-    delete_time = Column(UTCDateTime)
-    delete_time._creation_order = sys.maxsize - 1
+    rmtime = Column(UTCDateTime)
+    rmtime._creation_order = sys.maxsize - 1
 
-    @property
+    @hybrid_property
     def is_deleted(self):
-        return self.delete_time is not None
+        return self.rmtime is not None
+
+    @is_deleted.expression
+    def is_deleted(self):
+        return (self.rmtime != None)
 
     def delete(self):
-        self.delete_time = datetime.utcnow().replace(tzinfo=tzutc())
+        self.rmtime = datetime.utcnow().replace(tzinfo=tzutc())
 
-@event.listens_for(Deletable.delete_time, 'before_parent_attach', propagate=True)
+@event.listens_for(Deletable.rmtime, 'before_parent_attach', propagate=True)
 def on_is_deleted_before_parent_attach(column, table):
     column.doc = "tracks deletion time for {t.name}".format(t=table)
