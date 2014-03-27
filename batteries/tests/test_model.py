@@ -21,10 +21,12 @@ from batteries.model.storable import Storable, LocalStorage
 from batteries.model.loggable import Loggable, LogMessage
 from batteries.model.deletable import Deletable
 
+
 class MyLogMessage(LogMessage):
     __tablename__ = 'my_log_message'
 
     model_key = Column(Ascii(40), ForeignKey('my_model.key'))
+
 
 class MyModel(Hashable, Serializable, Storable, Model, Recordable, Loggable):
     __tablename__ = 'my_model'
@@ -33,9 +35,7 @@ class MyModel(Hashable, Serializable, Storable, Model, Recordable, Loggable):
 
     _key = Column('key', Ascii(40), primary_key=True)
     name = Column(Unicode(100))
-
     attachment = Column(LocalStorage('batteries.tests:fixtures/'))
-
     log_messages = relationship('MyLogMessage',
                                 order_by='MyLogMessage.timestamp.asc()')
 
@@ -77,7 +77,7 @@ class TestCase(TestCase):
         from batteries.model import Session
         assert Session == self.session
 
-        m = MyModel(_key='foobar', name=u'Foo Bar')
+        m = MyModel(key='foobar', name=u'Foo Bar')
         self.session.add(m)
         self.session.flush()
 
@@ -86,7 +86,7 @@ class TestCase(TestCase):
 
         try:
             assert MyModel.get('foobar') is not None
-            assert MyModel.query.filter(MyModel._key == 'foobar').one() is not None
+            assert MyModel.query.filter(MyModel.key == 'foobar').one() is not None
 
         except Exception as e:
             self.fail("Unexpected exception raised: {0!s}".format(e))
@@ -207,3 +207,22 @@ class TestCase(TestCase):
 
         self.session.add(m)
         self.session.flush()
+
+    def test_deprecated_key(self):
+        """should not fail if the old `_key` reference is used"""
+        from batteries.model import Session
+        assert Session == self.session
+
+        m = MyModel(_key='foobar', name=u'Foo Bar')
+        self.session.add(m)
+        self.session.flush()
+
+        m = MyModel.query.limit(1).all()[0]
+        assert m._key == 'foobar'
+
+        try:
+            assert MyModel.get('foobar') is not None
+            assert MyModel.query.filter(MyModel._key == 'foobar').one() is not None
+
+        except Exception as e:
+            self.fail("Unexpected exception raised: {0!s}".format(e))
