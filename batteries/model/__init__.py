@@ -34,54 +34,42 @@ class MetaModel(DeclarativeMeta):
             return default
 
 class Model(object):
-    __table_args__ =    {'mysql_engine': 'InnoDB',
-                         'mysql_charset': 'utf8'}
     __identifiers__ = None
 
     def __unicode__(self):
-        ids = []
-        if not self.__identifiers__:
-            ids = self.__mapper__.primary_key
-        else:
-            ids = self.__identifiers__
-
-        s = []
-        for col in ids:
-            if hasattr(col, 'key'):
-                col = col.key
-
-            if isinstance(col, tuple):
-                col, fmt = col
-            else:
-                fmt = u"{v!r}"
-
-            fmt = u"{col}=" + unicode(fmt)
-            s.append(fmt.format(col=col, v=getattr(self, col)))
-
-        return u"{cls}({keys})".format(cls=self.__class__.__name__, keys=', '.join(s))
+        keys = format_identifiers(self)
+        return u"{cls}({keys})".format(cls=self.__class__.__name__,
+                                       keys=', '.join(keys))
     __str__ = __unicode__
 
     def __repr__(self):
-        ids = []
-        if not self.__identifiers__:
-            ids = self.__mapper__.primary_key
+        keys = format_identifiers(self)
+        return "<{cls}({keys})>".format(cls=self.__class__.__name__,
+                                        keys=', '.join(keys))
+
+
+def format_identifiers(instance):
+    ids = []
+    if not instance.__identifiers__:
+        ids = instance.__mapper__.primary_key
+    else:
+        ids = instance.__identifiers__
+
+    s = []
+    for col in ids:
+        if hasattr(col, 'key'):
+            col = col.key
+
+        if isinstance(col, tuple):
+            col, fmt = col
         else:
-            ids = self.__identifiers__
+            fmt = u"{v!r}"
 
-        s = []
-        for col in ids:
-            if hasattr(col, 'key'):
-                col = col.key
+        fmt = u"{col}=" + unicode(fmt)
+        s.append(fmt.format(col=col, v=getattr(instance, col)))
 
-            if isinstance(col, tuple):
-                col, fmt = col
-            else:
-                fmt = "{v!r}"
+    return s
 
-            fmt = "{col}=" + fmt
-            s.append(fmt.format(col=col, v=getattr(self, col)))
-
-        return "<{cls}({keys})>".format(cls=self.__class__.__name__, keys=', '.join(s))
 
 @event.listens_for(Model, 'mapper_configured', propagate=True)
 def on_after_configured(mapper, cls):

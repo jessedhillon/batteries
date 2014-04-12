@@ -58,9 +58,6 @@ class TestCase(TestCase):
         warnings.filterwarnings('error')
         Model.metadata.create_all(self.engine)
 
-        from batteries.model import Session
-        assert Session == self.session
-
         MyModel.logging_required = False
 
     def tearDown(self):
@@ -74,9 +71,6 @@ class TestCase(TestCase):
         self.session.add(m)
 
     def test_fetch_model(self):
-        from batteries.model import Session
-        assert Session == self.session
-
         m = MyModel(key='foobar', name=u'Foo Bar')
         self.session.add(m)
         self.session.flush()
@@ -210,9 +204,6 @@ class TestCase(TestCase):
 
     def test_deprecated_key(self):
         """should not fail if the old `_key` reference is used"""
-        from batteries.model import Session
-        assert Session == self.session
-
         m = MyModel(_key='foobar', name=u'Foo Bar')
         self.session.add(m)
         self.session.flush()
