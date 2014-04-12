@@ -9,7 +9,7 @@ requires = ['SQLAlchemy', 'python-dateutil']
 
 setup(
     name='Batteries',
-    version='0.2.1',
+    version='0.3',
     description="Various batteries for Pyramid, SQLAlchemy and Python general programming",
     long_description=readme,
     classifiers=[
