@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 here = os.path.abspath(os.path.dirname(__file__))
 readme = open(os.path.join(here, 'README.rst')).read()
 
-requires = ['SQLAlchemy', 'python-dateutil']
+requires = ['SQLAlchemy', 'python-dateutil<=1.5']
 
 setup(
     name='Batteries',
