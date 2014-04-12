@@ -1,6 +1,7 @@
 import unicodedata
 import re
 
+
 class metaproperty(object):
     def __init__(self, getter=None, setter=None):
         self.getter = getter
@@ -11,6 +12,7 @@ class metaproperty(object):
 
     def __set__(self, cls, value):
         self.setter(value)
+
 
 def unique_values(seq, idfn=None):
     # order preserving
@@ -27,6 +29,7 @@ def unique_values(seq, idfn=None):
             result.append(item)
 
     return result
+
 
 def format_bytes(bytes, precision=1):
     bytes = int(bytes)
@@ -48,19 +51,23 @@ def format_bytes(bytes, precision=1):
 
     return '%.*f %s' % (precision, bytes / factor, suffix)
 
+
 def prefixed_keys(d, prefix):
     return dict([(k.replace(prefix, ''), v) for k, v in d.items() if k.startswith(prefix)])
+
 
 def parse_uri(s):
     uri_pattern = re.compile(r'^(?P<scheme>[A-Za-z]+)://(?P<username>[^:]+):(?P<password>[^@]*)@(?P<host>[^:]+):(?P<port>[0-9]+)(?P<urn>.*)')
     return re.match(uri_pattern, s).groupdict()
 
-def slug(value, sep='-'):
+
+def slugify(value, sep='-'):
     """https://code.djangoproject.com/browser/django/trunk/django/template/defaultfilters.py#L207"""
     value = unicode(value)
     value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore')
     value = unicode(re.sub('[^\w\s-]', '', value).strip().lower())
     return re.sub('[-\s]+', sep, value)
+
 
 def is_sequence(l, strings=False):
     if not strings and isinstance(l, basestring):

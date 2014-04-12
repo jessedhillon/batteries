@@ -5,6 +5,8 @@ import logging
 from unittest import TestCase
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
+import string
+import random
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
@@ -15,6 +17,7 @@ from batteries.path import AssetResolver
 from batteries.model.types import Ascii
 from batteries.model import Model, initialize_model
 from batteries.model.hashable import Hashable
+from batteries.model.identifiable import Identifiable
 from batteries.model.recordable import Recordable
 from batteries.model.serializable import Serializable
 from batteries.model.storable import Storable, LocalStorage
@@ -28,16 +31,25 @@ class MyLogMessage(LogMessage):
     model_key = Column(Ascii(40), ForeignKey('my_model.key'))
 
 
-class MyModel(Hashable, Serializable, Storable, Model, Recordable, Loggable):
+class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable, Loggable):
     __tablename__ = 'my_model'
     serializable = ('key', 'name', 'ctime', 'mtime')
+    named_with = ('name',)
     logging_class = MyLogMessage
 
     _key = Column('key', Ascii(40), primary_key=True)
-    name = Column(Unicode(100))
+    _slug = Column('slug', Ascii(40), unique=True)
+    name = Column(Unicode(100), nullable=False)
     attachment = Column(LocalStorage('batteries.tests:fixtures/'))
     log_messages = relationship('MyLogMessage',
                                 order_by='MyLogMessage.timestamp.asc()')
+
+    @property
+    def nonce(self):
+        s = ""
+        for i in range(40):
+            s += random.choice(string.ascii_letters + string.digits)
+        return s
 
 
 class MyDeletableModel(Hashable, Deletable, Model):
@@ -67,7 +79,7 @@ class TestCase(TestCase):
         self.session.close()
 
     def test_create_model(self):
-        m = MyModel()
+        m = MyModel(name=u'test')
         self.session.add(m)
 
     def test_fetch_model(self):
@@ -86,7 +98,7 @@ class TestCase(TestCase):
             self.fail("Unexpected exception raised: {0!s}".format(e))
 
     def test_hashable_key(self):
-        m = MyModel()
+        m = MyModel(name=u'test')
         self.session.add(m)
         self.session.flush()
 
@@ -101,7 +113,7 @@ class TestCase(TestCase):
     def test_recordable_timestamps(self):
         start = datetime.utcnow().replace(tzinfo=tzutc())
 
-        m = MyModel()
+        m = MyModel(name=u'test')
         self.session.add(m)
         self.session.flush()
 
@@ -217,3 +229,39 @@ class TestCase(TestCase):
 
         except Exception as e:
             self.fail("Unexpected exception raised: {0!s}".format(e))
+
+    def test_identifiable(self):
+        m1 = MyModel(key='first', name=u'test 1')
+        m2 = MyModel(key='second', name=u'test')
+        m3 = MyModel(key='third', name=u'test')
+
+        for m in m1, m2, m3:
+            self.session.add(m)
+            self.session.flush()
+
+        m1 = MyModel.get('first')
+        m2 = MyModel.get('second')
+        m3 = MyModel.get('third')
+        assert m1.slug == 'test-1'
+        assert m2.slug == 'test'
+        assert m3.slug == 'test-2'
+
+    def test_identifiable_with_nonce(self):
+        m1 = MyModel(key='first', name=u'test 1')
+        m2 = MyModel(key='second', name=u'test')
+        m3 = MyModel(key='third', name=u'test')
+
+        for m in m1, m2, m3:
+            m.named_with = ('name', 'nonce')
+            self.session.add(m)
+            self.session.flush()
+
+        m1 = MyModel.get('first')
+        m2 = MyModel.get('second')
+        m3 = MyModel.get('third')
+        assert m1.slug.startswith('test-1')
+        assert m2.slug.startswith('test')
+        assert m3.slug.startswith('test')
+
+        for m in m1, m2, m3:
+            assert len(m.slug) == 40
