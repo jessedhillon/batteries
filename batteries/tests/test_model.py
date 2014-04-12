@@ -26,13 +26,10 @@ from batteries.model.deletable import Deletable
 
 
 class MyLogMessage(LogMessage):
-    __tablename__ = 'my_log_message'
-
     model_key = Column(Ascii(40), ForeignKey('my_model.key'))
 
 
 class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable, Loggable):
-    __tablename__ = 'my_model'
     serializable = ('key', 'name', 'ctime', 'mtime')
     named_with = ('name',)
     logging_class = MyLogMessage
@@ -53,7 +50,6 @@ class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable,
 
 
 class MyDeletableModel(Hashable, Deletable, Model):
-    __tablename__ = 'my_deletable_model'
     serializable = ('key', 'name')
 
     _key = Column('key', Ascii(40), primary_key=True)
@@ -265,3 +261,6 @@ class TestCase(TestCase):
 
         for m in m1, m2, m3:
             assert len(m.slug) == 40
+
+    def test_tablename(self):
+        assert MyModel.__table__.name == 'my_model'

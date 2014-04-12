@@ -1,4 +1,5 @@
 import logging
+import re
 
 from sqlalchemy.orm.interfaces import EXT_CONTINUE, EXT_STOP
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta, declared_attr
@@ -10,6 +11,7 @@ from batteries.util import metaproperty
 Session = None
 logger = logging.getLogger('batteries.model')
 
+
 def initialize_model(session, engine, debug=False):
     global Session
     Session = session
@@ -17,6 +19,7 @@ def initialize_model(session, engine, debug=False):
     Model.metadata.bind = engine
 
     logger.info('model configured')
+
 
 class MetaModel(DeclarativeMeta):
     @metaproperty
@@ -33,8 +36,13 @@ class MetaModel(DeclarativeMeta):
         except NoResultFound:
             return default
 
+
 class Model(object):
     __identifiers__ = None
+
+    @declared_attr
+    def __tablename__(cls):
+        return camelcase_to_underscore(cls.__name__)
 
     def __unicode__(self):
         keys = format_identifiers(self)
@@ -46,6 +54,11 @@ class Model(object):
         keys = format_identifiers(self)
         return "<{cls}({keys})>".format(cls=self.__class__.__name__,
                                         keys=', '.join(keys))
+
+
+def camelcase_to_underscore(s):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', s)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower() 
 
 
 def format_identifiers(instance):
