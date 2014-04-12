@@ -15,23 +15,6 @@ class Hashable(object):
     key_name = 'key'
     keyed_on = 'uuid'
 
-    @hybrid_property
-    def key(self):
-        colname = '_' + self.key_name
-        if getattr(self, colname) is None:
-            setattr(self, colname, self.make_key())
-        return getattr(self, colname)
-
-    @key.setter
-    def key(self, v):
-        colname = '_' + self.key_name
-        setattr(self, colname, v)
-
-    @key.expression
-    def key(cls):
-        colname = '_' + cls.key_name
-        return getattr(cls, colname)
-
     @classmethod
     def make_key(cls, instance=None, **values):
         if instance is not None:
@@ -61,7 +44,43 @@ class Hashable(object):
     def update_key(self):
         colname = '_' + self.key_name
         if getattr(self, colname) is None:
-            setattr(self, colname, Hashable.make_key(instance=self))
+            setattr(self, colname, Hashable.make_key(self))
+
+
+def _get_key_name(cls):
+    return '_' + cls.key_name
+
+
+def _get_key_attr(cls):
+    return getattr(cls, _get_key_name(cls))
+
+
+def _get_key_column(cls):
+    return getattr(_get_key_attr(cls).parent.columns, _get_key_name(cls))
+
+
+def key_fget(instance):
+    colname = _get_key_name(instance.__class__)
+    if getattr(instance, colname) is None:
+        setattr(instance, colname, instance.make_key())
+    return getattr(instance, colname)
+
+
+def key_fset(instance, value):
+    colname = _get_key_name(instance.__class__)
+    setattr(instance, colname, value)
+
+
+def key_expr(cls):
+    colname = '_' + cls.key_name
+    return getattr(cls, colname)
+
+
+@event.listens_for(Hashable, 'instrument_class', propagate=True)
+def instrument_class(mapper, cls):
+    prop = hybrid_property(key_fget, key_fset, expr=key_expr)
+    setattr(cls, cls.key_name, prop)
+    return object.__new__(cls)
 
 
 @event.listens_for(Hashable, 'before_insert', propagate=True)
