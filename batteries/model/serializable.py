@@ -1,5 +1,7 @@
 import collections
 import numbers
+from sqlalchemy.orm import object_session
+from sqlalchemy.orm.util import has_identity 
 
 class Serializer(object):
     datetime_format = '%s'
@@ -79,7 +81,14 @@ class Serializable(object):
                 obj[prop] = getattr(self, serializer_name)()
 
             else:
-                v = getattr(self, prop)
+                is_transient = object_session(self) is None and not has_identity(self)
+                if is_transient:
+                    # transiet instances are not tied to a session,
+                    # so we can't call getattr() because that can cause an attribute refresh,
+                    # which is a hard SQLAlchemy error
+                    v = self.__dict__.get(prop)
+                else:
+                    v = getattr(self, prop)
                 serializers = self.__serializable_args__['serializers']
                 opts = self.__serializable_args__['opts']
                 obj[prop] = serialize(v, serializers, opts)
