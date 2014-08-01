@@ -11,7 +11,8 @@ import random
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker, relationship
 from sqlalchemy.schema import Column, ForeignKey
-from sqlalchemy.types import Unicode
+from sqlalchemy.types import Unicode, Numeric
+from sqlalchemy.exc import SAWarning
 from batteries.path import AssetResolver
 
 from batteries.model.types import Ascii
@@ -30,13 +31,14 @@ class MyLogMessage(LogMessage):
 
 
 class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable, Loggable):
-    serializable = ('key', 'name', 'ctime', 'mtime')
+    serializable = ('key', 'name', 'number', 'ctime', 'mtime')
     named_with = ('name',)
     logging_class = MyLogMessage
 
     _key = Column('key', Ascii(40), primary_key=True)
     _slug = Column('slug', Ascii(40), unique=True)
     name = Column(Unicode(100), nullable=False)
+    number = Column(Numeric(10, scale=2))
     attachment = Column(LocalStorage('batteries.tests:fixtures/'))
     log_messages = relationship('MyLogMessage',
                                 order_by='MyLogMessage.timestamp.asc()')
@@ -64,6 +66,13 @@ class TestCase(TestCase):
         initialize_model(self.session, self.engine)
 
         warnings.filterwarnings('error')
+        warnings.filterwarnings(
+            'ignore',
+            r"^Dialect sqlite\+pysqlite does \*not\* support Decimal objects natively\, "
+            "and SQLAlchemy must convert from floating point - rounding errors and other "
+            "issues may occur\. Please consider storing Decimal numbers as strings or "
+            "integers on this platform for lossless storage\.$",
+            SAWarning, r'^sqlalchemy\.sql\.type_api$')
         Model.metadata.create_all(self.engine)
 
         MyModel.logging_required = False
@@ -119,7 +128,7 @@ class TestCase(TestCase):
         assert m.mtime >= start
 
     def test_serializable(self):
-        m = MyModel(name=u'Foo Bar')
+        m = MyModel(name=u'Foo Bar', number=3.14)
         self.session.add(m)
         self.session.flush()
 
@@ -128,6 +137,7 @@ class TestCase(TestCase):
 
         assert 'key' in s
         assert s['name'] == u'Foo Bar'
+        assert s['number'] == 3.14
         assert s['mtime'] == int(m.mtime.strftime('%s'))
         assert s['ctime'] == int(m.ctime.strftime('%s'))
 
