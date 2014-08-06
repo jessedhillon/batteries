@@ -1,0 +1,4 @@
+include CHANGES.rst
+include README.rst
+include LICENSE
+include batteries/tests/fixtures/test_image.png
