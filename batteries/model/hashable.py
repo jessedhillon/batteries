@@ -110,6 +110,9 @@ def HashableAssociation(left_table, right_table, left_key_name=None, right_key_n
 
 
 def HashableReference(foreign_table, key_name='key', name=None, **kwargs):
+    if hasattr(Model.metadata, 'naming_convention'):
+        return Column(Ascii(40), ForeignKey("{0}.{1}".format(foreign_table, key_name)), **kwargs)
+
     if name is None:
         name = key_name + '_constraint'
     return Column(Ascii(40), ForeignKey("{0}.{1}".format(foreign_table, key_name), name=name), **kwargs)
