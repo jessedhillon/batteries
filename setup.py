@@ -10,7 +10,7 @@ requires = ['SQLAlchemy', 'python-dateutil<=1.5']
 
 setup(
     name='sqlalchemy-batteries',
-    version='0.3.1',
+    version='0.3.2',
     description="Various batteries for SQLAlchemy models",
     long_description="{}\n\n{}".format(readme, changes),
     classifiers=[
