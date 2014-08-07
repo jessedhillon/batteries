@@ -40,6 +40,9 @@ def serialize(v, serializers, opts):
     elif isinstance(v, collections.Mapping):
         return {k: serialize(w, serializers, opts) for k, w in v.items()}
 
+    elif v is None:
+        return
+
     raise ValueError("No serialization available for {!r}".format(v))
 
 class Serializable(object):
