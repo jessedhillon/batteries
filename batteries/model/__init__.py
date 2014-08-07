@@ -29,12 +29,18 @@ class MetaModel(DeclarativeMeta):
     def delete(cls, instance):
         Session.delete(instance)
 
-    def get(cls, *v):
+    def get(cls, *v, **kwargs):
         try:
-            return cls.query.get(v)
+            if v:
+                return cls.query.get(v)
+            if kwargs:
+                q = cls.query
+                for k, v in kwargs.items():
+                    q = q.filter_by(**{k: v})
+                return q.one()
 
         except NoResultFound:
-            return default
+            return None
 
 
 class Model(object):
