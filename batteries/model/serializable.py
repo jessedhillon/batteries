@@ -28,6 +28,9 @@ def serialize(v, serializers, opts):
     if type(v).__name__ in serializers:
         return serializers[type(v).__name__](v, opts)
 
+    if v is None:
+        return
+
     if isinstance(v, basestring) or isinstance(v, numbers.Number):
         return v
 
@@ -39,9 +42,6 @@ def serialize(v, serializers, opts):
 
     elif isinstance(v, collections.Mapping):
         return {k: serialize(w, serializers, opts) for k, w in v.items()}
-
-    elif v is None:
-        return
 
     raise ValueError("No serialization available for {!r}".format(v))
 

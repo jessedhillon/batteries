@@ -31,7 +31,7 @@ class MyLogMessage(LogMessage):
 
 
 class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable, Loggable):
-    serializable = ('key', 'name', 'number', 'ctime', 'mtime')
+    serializable = ('key', 'name', 'number', 'string', 'ctime', 'mtime')
     named_with = ('name',)
     logging_class = MyLogMessage
 
@@ -39,6 +39,7 @@ class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable,
     _slug = Column('slug', Ascii(40), unique=True)
     name = Column(Unicode(100), nullable=False)
     number = Column(Numeric(10, scale=2))
+    string = Column(Unicode(100))
     attachment = Column(LocalStorage('batteries.tests:fixtures/'))
     log_messages = relationship('MyLogMessage',
                                 order_by='MyLogMessage.timestamp.asc()')
@@ -128,7 +129,7 @@ class TestCase(TestCase):
         assert m.mtime >= start
 
     def test_serializable(self):
-        m = MyModel(name=u'Foo Bar', number=3.14)
+        m = MyModel(name=u'Foo Bar', number=3.14, string=None)
         self.session.add(m)
         self.session.flush()
 
@@ -138,6 +139,7 @@ class TestCase(TestCase):
         assert 'key' in s
         assert s['name'] == u'Foo Bar'
         assert s['number'] == 3.14
+        assert s['string'] == None
         assert s['mtime'] == int(m.mtime.strftime('%s'))
         assert s['ctime'] == int(m.ctime.strftime('%s'))
 
