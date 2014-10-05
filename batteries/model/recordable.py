@@ -7,6 +7,7 @@ from sqlalchemy import event
 
 from batteries.model.types import UTCDateTime
 
+
 class Recordable(object):
     ctime = Column(UTCDateTime)
     mtime = Column(UTCDateTime)
@@ -14,18 +15,22 @@ class Recordable(object):
     ctime._creation_order = sys.maxsize - 1
     mtime._creation_order = sys.maxsize
 
+
 @event.listens_for(Recordable.ctime, 'before_parent_attach', propagate=True)
 def on_ctime_before_parent_attach(column, table):
     column.doc = "creation timestamp for {t.name}".format(t=table)
+
 
 @event.listens_for(Recordable.mtime, 'before_parent_attach', propagate=True)
 def on_mtime_before_parent_attach(column, table):
     column.doc = "modification timestamp for {t.name}".format(t=table)
 
+
 @event.listens_for(Recordable, 'before_insert', propagate=True)
 def on_before_insert(mapper, connection, target):
     target.ctime = datetime.utcnow().replace(tzinfo=tzutc())
     target.mtime = datetime.utcnow().replace(tzinfo=tzutc())
+
 
 @event.listens_for(Recordable, 'before_update', propagate=True)
 def on_before_update(mapper, connection, target):

@@ -2,7 +2,7 @@ import os
 import warnings
 import json
 import logging
-from unittest import TestCase
+from unittest import TestCase, skip
 from datetime import datetime, timedelta
 from dateutil.tz import tzutc
 import string
@@ -22,18 +22,12 @@ from batteries.model.identifiable import Identifiable
 from batteries.model.recordable import Recordable
 from batteries.model.serializable import Serializable
 from batteries.model.storable import Storable, LocalStorage
-from batteries.model.loggable import Loggable, LogMessage
 from batteries.model.deletable import Deletable
 
 
-class MyLogMessage(LogMessage):
-    model_key = Column(Ascii(40), ForeignKey('my_model.key'))
-
-
-class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable, Loggable):
+class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable):
     serializable = ('key', 'name', 'number', 'string', 'ctime', 'mtime')
     named_with = ('name',)
-    logging_class = MyLogMessage
 
     _key = Column('key', Ascii(40), primary_key=True)
     _slug = Column('slug', Ascii(40), unique=True)
@@ -41,8 +35,6 @@ class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable,
     number = Column(Numeric(10, scale=2))
     string = Column(Unicode(100))
     attachment = Column(LocalStorage('batteries.tests:fixtures/'))
-    log_messages = relationship('MyLogMessage',
-                                order_by='MyLogMessage.timestamp.asc()')
 
     @property
     def nonce(self):
@@ -75,8 +67,6 @@ class TestCase(TestCase):
             "integers on this platform for lossless storage\.$",
             SAWarning, r'^sqlalchemy\.sql\.type_api$')
         Model.metadata.create_all(self.engine)
-
-        MyModel.logging_required = False
 
     def tearDown(self):
         MyModel.logging_required = False
@@ -168,9 +158,8 @@ class TestCase(TestCase):
 
         assert not os.path.isfile(path)
 
+    @skip("forget Loggable")
     def test_loggable(self):
-        MyModel.logging_required = True
-
         try:
             m = MyModel(name=u"Foo Bar")
             self.session.add(m)

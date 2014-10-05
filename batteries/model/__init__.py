@@ -5,17 +5,19 @@ from sqlalchemy.orm.interfaces import EXT_CONTINUE, EXT_STOP
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta, declared_attr
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import event
+from sqlalchemy.orm.session import Session
 
 from batteries.util import metaproperty
 
-Session = None
+session = None
 logger = logging.getLogger('batteries.model')
 
 
-def initialize_model(session, engine, debug=False):
-    global Session
-    Session = session
-    Session.configure(bind=engine)
+def initialize_model(s, engine, debug=False):
+    global session
+    session = s
+    if not isinstance(session, Session):
+        session.configure(bind=engine)
     Model.metadata.bind = engine
 
     logger.info('model configured')
@@ -24,10 +26,10 @@ def initialize_model(session, engine, debug=False):
 class MetaModel(DeclarativeMeta):
     @metaproperty
     def query(cls):
-        return Session.query(cls)
+        return session.query(cls)
 
     def delete(cls, instance):
-        Session.delete(instance)
+        session.delete(instance)
 
     def get(cls, *v, **kwargs):
         try:
@@ -92,16 +94,23 @@ def format_identifiers(instance):
 
 @event.listens_for(Model, 'mapper_configured', propagate=True)
 def on_after_configured(mapper, cls):
-    events = ('after_configured', 'after_delete', 'after_insert', 'after_update',\
-              'append_result', 'before_delete', 'before_insert', 'before_update',\
-              'create_instance', 'instrument_class', 'mapper_configured',\
-              'populate_instance', 'translate_row', 'expire', 'first_init',\
-              'init', 'init_failure', 'load', 'pickle', 'refresh', 'resurrect',\
-              'unpickle')
+    events = ('after_configured', 'after_delete', 'after_insert',
+              'after_update', 'append_result', 'before_delete',
+              'before_insert', 'before_update', 'create_instance',
+              'instrument_class', 'mapper_configured', 'populate_instance',
+              'translate_row', 'expire', 'first_init', 'init', 'init_failure',
+              'load', 'pickle', 'refresh', 'resurrect', 'unpickle')
+
+    do_mapper_configure = False
 
     for ev in events:
         mname = 'on_{0}'.format(ev)
         if mname in cls.__dict__:
+            if ev == 'mapper_configured':
+                do_mapper_configure = True
             event.listen(cls, ev, getattr(cls, mname))
+
+    if do_mapper_configure:
+        cls.on_mapper_configured(mapper, cls)
 
 Model = declarative_base(cls=Model, metaclass=MetaModel)
