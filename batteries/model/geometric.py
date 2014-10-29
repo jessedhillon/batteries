@@ -2,6 +2,7 @@ from geoalchemy2.shape import from_shape, to_shape
 from geoalchemy2 import Geometry
 from shapely.geometry.point import Point
 from sqlalchemy import event
+from collections import Sequence
 
 
 class Geometric(object):
@@ -28,14 +29,22 @@ class PointGeometryDescriptor(object):
             wkb = self.property.__get__(instance, cls)
             if wkb is None:
                 return None
-            return to_shape(wkb)
+            p = to_shape(wkb)
+            p.to_wkb = lambda: wkb
+            return p
 
         elif cls is not None:
             return self.property.__get__(instance, cls)
 
     def __set__(self, instance, v):
-        p = Point(*v)
-        self.property.__set__(instance, from_shape(p))
+        if len(v) == 2 and isinstance(v[0], Sequence):
+            points = v[0]
+            srid = v[1]
+        else:
+            points = v
+            srid = None
+        p = Point(*points)
+        self.property.__set__(instance, from_shape(p, srid=srid))
 
 
 def Point_repr(point):
@@ -45,9 +54,4 @@ def Point_repr(point):
 
     return "<Point {}>".format(', '.join(map(str, p)))
 
-
-def Point_to_wkb(point):
-    return from_shape(point)
-
 Point.__repr__ = Point_repr
-Point.to_wkb = Point_to_wkb
