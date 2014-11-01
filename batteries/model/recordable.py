@@ -9,8 +9,8 @@ from batteries.model.types import UTCDateTime
 
 
 class Recordable(object):
-    ctime = Column(UTCDateTime)
-    mtime = Column(UTCDateTime)
+    ctime = Column(UTCDateTime, index=True)
+    mtime = Column(UTCDateTime, index=True)
 
     ctime._creation_order = sys.maxsize - 1
     mtime._creation_order = sys.maxsize
