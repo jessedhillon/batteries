@@ -35,11 +35,11 @@ def format_bytes(bytes, precision=1):
     bytes = int(bytes)
 
     abbrevs = (
-        (1<<50L, 'PB'),
-        (1<<40L, 'TB'),
-        (1<<30L, 'GB'),
-        (1<<20L, 'MB'),
-        (1<<10L, 'kB'),
+        (2**50, 'PB'),
+        (2**40, 'TB'),
+        (2**30, 'GB'),
+        (2**20, 'MB'),
+        (2**10, 'kB'),
         (1, 'bytes')
     )
     if bytes == 1:
