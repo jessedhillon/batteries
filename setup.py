@@ -15,7 +15,7 @@ else:
 
 setup(
     name='sqlalchemy-batteries',
-    version='0.4.3',
+    version='0.4.4',
     description="Various batteries for SQLAlchemy models",
     long_description="{}\n\n{}".format(readme, changes),
     classifiers=[
