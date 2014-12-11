@@ -3,13 +3,8 @@ import pkg_resources
 import sys
 import imp
 
-# from zope.interface import implementer
-# 
-# from pyramid.interfaces import IAssetDescriptor
-# 
-# from pyramid.compat import string_types
+from six import string_types
 
-string_types = (basestring,)
 ignore_types = [ imp.C_EXTENSION, imp.C_BUILTIN ]
 init_names = [ '__init__%s' % x[0] for x in imp.get_suffixes() if
                x[0] and x[2] not in ignore_types ]

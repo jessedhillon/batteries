@@ -7,7 +7,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 readme = open(os.path.join(here, 'README.rst'), 'r').read()
 changes = open(os.path.join(here, 'CHANGES.rst'), 'r').read()
 
-requires = ['SQLAlchemy', 'geoalchemy2', 'shapely']
+requires = ['SQLAlchemy', 'geoalchemy2', 'shapely', 'six']
 if sys.version_info >= (3,):
     requires.append('python-dateutil')
 else:
