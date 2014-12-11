@@ -1,3 +1,4 @@
+import sys
 import os
 
 from setuptools import setup, find_packages
@@ -6,11 +7,15 @@ here = os.path.abspath(os.path.dirname(__file__))
 readme = open(os.path.join(here, 'README.rst'), 'r').read()
 changes = open(os.path.join(here, 'CHANGES.rst'), 'r').read()
 
-requires = ['SQLAlchemy', 'python-dateutil<=1.5', 'geoalchemy2', 'shapely']
+requires = ['SQLAlchemy', 'geoalchemy2', 'shapely']
+if sys.version_info >= (3,):
+    requires.append('python-dateutil')
+else:
+    requires.append('python-dateutil<=1.5')
 
 setup(
     name='sqlalchemy-batteries',
-    version='0.4.2',
+    version='0.4.3',
     description="Various batteries for SQLAlchemy models",
     long_description="{}\n\n{}".format(readme, changes),
     classifiers=[
