@@ -27,7 +27,7 @@ class Hashable(object):
             elif instance.keyed_on == 'uuid':
                 h.update(uuid().hex)
 
-            return h.hexdigest()
+            return unicode(h.hexdigest())
 
         else:
             h = sha1()
@@ -39,7 +39,7 @@ class Hashable(object):
             elif cls.keyed_on == 'uuid':
                 h.update(uuid().hex)
 
-            return h.hexdigest()
+            return unicode(h.hexdigest())
 
     def update_key(self):
         colname = '_' + self.key_name
