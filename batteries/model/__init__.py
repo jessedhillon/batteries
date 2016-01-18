@@ -1,16 +1,23 @@
 import logging
 import re
+import enum
+from collections import namedtuple
 
 from sqlalchemy.orm.interfaces import EXT_CONTINUE, EXT_STOP
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta, declared_attr
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy import event
 from sqlalchemy.orm.session import Session
+import sqlalchemy.dialects.postgresql as postgresql
 
 from batteries.util import metaproperty
 
 session = None
 logger = logging.getLogger('batteries.model')
+enum_types = [
+    postgresql.base.ENUM,
+]
 
 
 def initialize_model(s, engine, debug=False):
@@ -46,7 +53,7 @@ class MetaModel(DeclarativeMeta):
 
 
 class Model(object):
-    __identifiers__ = None
+    identifiers = None
 
     @declared_attr
     def __tablename__(cls):
@@ -71,10 +78,10 @@ def camelcase_to_underscore(s):
 
 def format_identifiers(instance):
     ids = []
-    if not instance.__identifiers__:
+    if not instance.identifiers:
         ids = instance.__mapper__.primary_key
     else:
-        ids = instance.__identifiers__
+        ids = instance.identifiers
 
     s = []
     for col in ids:
@@ -104,7 +111,7 @@ def on_after_configured(mapper, cls):
     do_mapper_configure = False
 
     for ev in events:
-        mname = 'on_{0}'.format(ev)
+        mname = 'on_{}'.format(ev)
         if mname in cls.__dict__:
             if ev == 'mapper_configured':
                 do_mapper_configure = True
@@ -112,5 +119,40 @@ def on_after_configured(mapper, cls):
 
     if do_mapper_configure:
         cls.on_mapper_configured(mapper, cls)
+
+
+@event.listens_for(Model, 'instrument_class', propagate=True)
+def on_instrument_class(mapper, cls):
+    for col in mapper.mapped_table.columns:
+        if col.default is not None:
+            default = col.default
+
+            if col.name is None:
+                col.name = key
+                key = col.key
+            else:
+                key = col.name
+
+            context = namedtuple('context', ['current_parameters'])
+
+            def default_get(self):
+                if getattr(self, '_{}'.format(key)) is None:
+                    params = context(current_parameters=self.__dict__)
+                    setattr(self, '_{}'.format(key), default.arg(params))
+                return getattr(self, '_{}'.format(key))
+
+            def default_set(self, v):
+                setattr(self, '_{}'.format(key), v)
+
+            def default_expr(cls):
+                return getattr(cls, '_{}'.format(key))
+
+            prop = hybrid_property(default_get, default_set, expr=default_expr)
+            col.key = '_{}'.format(key)
+            col.name = key
+            setattr(cls, '_{}'.format(key), getattr(cls, key))
+            setattr(cls, key, prop)
+    return object.__new__(cls)
+
 
 Model = declarative_base(cls=Model, metaclass=MetaModel)

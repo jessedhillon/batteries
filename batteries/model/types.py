@@ -3,16 +3,47 @@ from dateutil.tz import tzutc
 from uuid import uuid4
 
 from sqlalchemy.types import TypeDecorator, DateTime, String
+from sqlalchemy import func
 import sqlalchemy.dialects.mysql as mysql
 import sqlalchemy.dialects.sqlite as sqlite
+import sqlalchemy.dialects.postgresql as postgresql
 
 from batteries.path import AssetResolver
+
+
+class Enumeration(TypeDecorator):
+    impl = postgresql.ENUM
+
+    def __init__(self, enum):
+        super(Enumeration, self).__init__()
+        self.enum = enum
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            col = postgresql.ENUM(self.enum.__members__.keys(),
+                                  name=self.enum.__name__)
+            return dialect.type_descriptor(col)
+        raise NotImplementedError()
+
+    def process_bind_param(self, value, dialect):
+        return value.name
+
+    def process_result_value(self, value, dialect):
+        return getattr(self.enum, value)
+
 
 class UTCDateTime(TypeDecorator):
     impl = DateTime
 
+    def __init__(self, *args, **kwargs):
+        kwargs['timezone'] = True
+        super(UTCDateTime, self).__init__(*args, **kwargs)
+
     def process_bind_param(self, value, engine):
         if value is not None:
+            if isinstance(value, basestring) and value == 'UTC':
+                return value
+
             if value.tzinfo is None:
                 # TODO: do we want to assume that unqualified datetimes are UTC?
                 return value.replace(tzinfo=tzutc())
@@ -21,9 +52,8 @@ class UTCDateTime(TypeDecorator):
 
     def process_result_value(self, value, engine):
         if value is not None:
-            return datetime(value.year, value.month, value.day,
-                                        value.hour, value.minute, value.second,
-                                        value.microsecond, tzinfo=tzutc())
+            return value.astimezone(tzutc())
+
 
 class UUID(TypeDecorator):
     impl = String

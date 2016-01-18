@@ -3,14 +3,14 @@ from datetime import datetime
 from dateutil.tz import tzutc
 
 from sqlalchemy.schema import Column
-from sqlalchemy import event
+from sqlalchemy import event, func
 
 from batteries.model.types import UTCDateTime
 
 
 class Recordable(object):
-    ctime = Column(UTCDateTime, index=True)
-    mtime = Column(UTCDateTime, index=True)
+    ctime = Column(UTCDateTime, index=True, server_default=func.clock_timestamp())
+    mtime = Column(UTCDateTime, index=True, server_onupdate=func.clock_timestamp())
 
     ctime._creation_order = sys.maxsize - 1
     mtime._creation_order = sys.maxsize

@@ -26,10 +26,11 @@ from batteries.model.deletable import Deletable
 
 
 class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable):
+    key_name = 'key'
     serializable = ('key', 'name', 'number', 'string', 'ctime', 'mtime')
     named_with = ('name',)
 
-    _key = Column('key', Ascii(40), primary_key=True)
+    key = Column('key', Ascii(40), primary_key=True)
     _slug = Column('slug', Ascii(40), unique=True)
     name = Column(Unicode(100), nullable=False)
     number = Column(Numeric(10, scale=2))
@@ -45,9 +46,10 @@ class MyModel(Hashable, Identifiable, Serializable, Storable, Model, Recordable)
 
 
 class MyDeletableModel(Hashable, Deletable, Model):
+    key_name = 'key'
     serializable = ('key', 'name')
 
-    _key = Column('key', Ascii(40), primary_key=True)
+    key = Column('key', Ascii(40), primary_key=True)
     name = Column(Unicode(100))
 
 
